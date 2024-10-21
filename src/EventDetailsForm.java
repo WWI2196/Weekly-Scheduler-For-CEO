@@ -12,9 +12,19 @@ class EventDetailsForm extends JDialog {
     private JSpinner dateSpinner;
     private JSpinner startTimeSpinner;
     private JSpinner endTimeSpinner;
-    private final Color[] AVAILABLE_COLORS = {
+    
+    private final Color[] EVENT_COLORS = {
         Color.RED, Color.GREEN, Color.YELLOW, 
         Color.BLUE, Color.ORANGE, Color.GRAY
+    };
+    
+    private final Color[] WINDOW_COLORS = {
+        new Color(255, 200, 200), // Light Red
+        new Color(200, 255, 200), // Light Green
+        new Color(255, 255, 200), // Light Yellow
+        new Color(200, 200, 255), // Light Blue
+        new Color(255, 225, 200), // Light Orange
+        new Color(225, 225, 225)  // Light Gray
     };
     private ScheduleManager scheduleManager;
     
@@ -127,7 +137,7 @@ class EventDetailsForm extends JDialog {
     }
     
     private void updateTitleBarColor() {
-        Color selectedColor = AVAILABLE_COLORS[colorBox.getSelectedIndex()];
+        Color selectedColor = WINDOW_COLORS[colorBox.getSelectedIndex()];
         this.getContentPane().setBackground(selectedColor);
         this.repaint();
     }
@@ -145,8 +155,8 @@ class EventDetailsForm extends JDialog {
         endTimeSpinner.setValue(java.sql.Timestamp.valueOf(event.getEndTime()));
         
         // Set color
-        for (int i = 0; i < AVAILABLE_COLORS.length; i++) {
-            if (AVAILABLE_COLORS[i].equals(event.getColor())) {
+        for (int i = 0; i < EVENT_COLORS.length; i++) {
+            if (EVENT_COLORS[i].equals(event.getColor())) {
                 colorBox.setSelectedIndex(i);
                 break;
             }
@@ -192,7 +202,7 @@ class EventDetailsForm extends JDialog {
             LocalDateTime endDateTime = LocalDateTime.of(date, endTime);
 
             // Get selected color
-            Color color = AVAILABLE_COLORS[colorBox.getSelectedIndex()];
+            Color color = EVENT_COLORS[colorBox.getSelectedIndex()];
 
             // Create new event
             result = new ScheduleEvent(name, location, startDateTime, endDateTime, color);
