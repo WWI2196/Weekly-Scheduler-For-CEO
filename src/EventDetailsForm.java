@@ -3,6 +3,7 @@ import java.time.*;
 import java.util.*;
 import javax.swing.*;
 
+// Class for the event details form to create and edit events
 class EventDetailsForm extends JDialog {
     private ScheduleEvent result;
     private ScheduleEvent originalEvent;
@@ -13,11 +14,13 @@ class EventDetailsForm extends JDialog {
     private JSpinner startTimeSpinner;
     private JSpinner endTimeSpinner;
     
+    // Colors for the events
     private final Color[] EVENT_COLORS = {
         Color.RED, Color.GREEN, Color.YELLOW, 
         Color.BLUE, Color.ORANGE, Color.GRAY
     };
     
+    // Colors for the sheduler form window
     private final Color[] WINDOW_COLORS = {
         new Color(255, 200, 200), // Light Red
         new Color(200, 255, 200), // Light Green
@@ -38,6 +41,7 @@ class EventDetailsForm extends JDialog {
         }
     }
 
+     // Set the user interface for the form
     private void setUserInterface() {
         setLayout(new GridBagLayout());
         GridBagConstraints gbc_ = new GridBagConstraints();
@@ -50,7 +54,7 @@ class EventDetailsForm extends JDialog {
         
         String[] colorNames = {"Red", "Green", "Yellow", "Blue", "Orange", "Gray"};
         colorBox = new JComboBox<>(colorNames);
-        colorBox.addActionListener(e -> updateTitleBarColor());
+        colorBox.addActionListener(e -> updateWindowColor());
 
         // Setup date spinner
         dateSpinner = new JSpinner(new SpinnerDateModel());
@@ -133,15 +137,17 @@ class EventDetailsForm extends JDialog {
 
         pack();
         setLocationRelativeTo(getOwner());
-        updateTitleBarColor();
+        updateWindowColor();
     }
     
-    private void updateTitleBarColor() {
+    // Update the window color based on the selected event color
+    private void updateWindowColor() {
         Color selectedColor = WINDOW_COLORS[colorBox.getSelectedIndex()];
         this.getContentPane().setBackground(selectedColor);
         this.repaint();
     }
 
+    // Populate form fields with existing event form
     private void populateFields(ScheduleEvent event) {
         nameField.setText(event.getName());
         locationField.setText(event.getLocation());
