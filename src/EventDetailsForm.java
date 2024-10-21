@@ -48,7 +48,6 @@ class EventDetailsForm extends JDialog {
         gbc_.insets = new Insets(5, 5, 5, 5);
         gbc_.fill = GridBagConstraints.HORIZONTAL;
 
-        // Create components
         nameField = new JTextField(32);
         locationField = new JTextField(32);
         
@@ -56,18 +55,15 @@ class EventDetailsForm extends JDialog {
         colorBox = new JComboBox<>(colorNames);
         colorBox.addActionListener(e -> updateWindowColor());
 
-        // Setup date spinner
         dateSpinner = new JSpinner(new SpinnerDateModel());
         dateSpinner.setEditor(new JSpinner.DateEditor(dateSpinner, "yyyy-MM-dd"));
 
-        // Setup time spinners
         startTimeSpinner = new JSpinner(new SpinnerDateModel());
         startTimeSpinner.setEditor(new JSpinner.DateEditor(startTimeSpinner, "HH:mm"));
 
         endTimeSpinner = new JSpinner(new SpinnerDateModel());
         endTimeSpinner.setEditor(new JSpinner.DateEditor(endTimeSpinner, "HH:mm"));
 
-        // Add components to dialog
         gbc_.gridx = 0; gbc_.gridy = 0;
         add(new JLabel("Event Name:"), gbc_);
         
@@ -104,7 +100,7 @@ class EventDetailsForm extends JDialog {
         gbc_.gridx = 1;
         add(colorBox, gbc_);
 
-        // Add buttons
+        // To Add buttons
         JPanel buttonPanel = new JPanel();
         JButton okButton = new JButton("OK");
         JButton cancelButton = new JButton("Cancel");
