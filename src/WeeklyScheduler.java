@@ -125,7 +125,7 @@ class MainFrame extends JFrame {
             newEvent.getStartTime(), newEvent.getEndTime()).toMinutes();
         if (durationMinutes < 30 || durationMinutes > 180) {
             JOptionPane.showMessageDialog(this, 
-                "Event duration must be between 30 minutes and 3 hours");
+                "Event duration must be between 30 minutes minimum and 3 hours maximum.");
             return false;
         }
 
@@ -222,13 +222,15 @@ class WeekPanel extends JPanel {
     private MainFrame mainFrame;
     private static final int HOUR_HEIGHT = 60;
     private static final int DAY_WIDTH = 150;
-    private static final int HEADER_HEIGHT = 30;
+    private static final int HEADER_HEIGHT = 50;  // Increased header height
+    private static final int TIME_COLUMN_WIDTH = 50;  // Width for time indicators
     
     public WeekPanel(LocalDate monday, ArrayList<Event> events, MainFrame mainFrame) {
         this.monday = monday;
         this.events = events;
         this.mainFrame = mainFrame;
-        setPreferredSize(new Dimension(DAY_WIDTH * 7, HOUR_HEIGHT * 12 + HEADER_HEIGHT));
+        setPreferredSize(new Dimension(TIME_COLUMN_WIDTH + DAY_WIDTH * 7, 
+            HOUR_HEIGHT * 12 + HEADER_HEIGHT));
         
         addMouseListener(new MouseAdapter() {
             @Override
@@ -236,37 +238,109 @@ class WeekPanel extends JPanel {
                 handleClick(e.getX(), e.getY());
             }
         });
+
+        // Add tooltip
+        ToolTipManager.sharedInstance().registerComponent(this);
+    }
+
+    @Override
+    public String getToolTipText(MouseEvent e) {
+        Event event = findEventAt(e.getX(), e.getY());
+        if (event != null) {
+            return String.format("<html>%s<br>Location: %s<br>Time: %s - %s</html>",
+                event.getName(),
+                event.getLocation(),
+                event.getStartTime().format(DateTimeFormatter.ofPattern("HH:mm")),
+                event.getEndTime().format(DateTimeFormatter.ofPattern("HH:mm")));
+        }
+        return null;
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        drawGrid(g);
-        drawEvents(g);
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, 
+            RenderingHints.VALUE_ANTIALIAS_ON);
+        
+        drawGrid(g2d);
+        drawTimeIndicators(g2d);
+        drawEvents(g2d);
+        drawCurrentTimeLine(g2d);
     }
 
-    private void drawGrid(Graphics g) {
-        // Draw day headers and vertical lines
+    private void drawGrid(Graphics2D g) {
+        // Draw header background
+        g.setColor(new Color(240, 240, 240));
+        g.fillRect(0, 0, getWidth(), HEADER_HEIGHT);
+        g.setColor(Color.BLACK);
+
+        // Draw day headers
+        Font headerFont = new Font("Arial", Font.BOLD, 12);
+        g.setFont(headerFont);
+        
         for (int i = 0; i < 7; i++) {
             LocalDate date = monday.plusDays(i);
-            String header = date.format(DateTimeFormatter.ofPattern("MM/dd"));
-            g.drawString(header, i * DAY_WIDTH + 5, 20);
-            g.drawLine(i * DAY_WIDTH, 0, i * DAY_WIDTH, getHeight());
+            int x = TIME_COLUMN_WIDTH + (i * DAY_WIDTH);
+            
+            // Draw day name
+            String dayName = date.getDayOfWeek().getDisplayName(
+                TextStyle.SHORT, Locale.getDefault());
+            g.drawString(dayName, x + 5, 20);
+            
+            // Draw date
+            String dateStr = date.format(DateTimeFormatter.ofPattern("MM/dd"));
+            g.drawString(dateStr, x + 5, 40);
+
+            // Draw vertical lines
+            g.drawLine(x, 0, x, getHeight());
+
+            // Highlight weekend
+            if (i >= 5) {  // Saturday and Sunday
+                g.setColor(new Color(255, 240, 240, 100));
+                g.fillRect(x, HEADER_HEIGHT, DAY_WIDTH, getHeight() - HEADER_HEIGHT);
+                g.setColor(Color.BLACK);
+            }
         }
+
+        // Draw right border
         g.drawLine(getWidth() - 1, 0, getWidth() - 1, getHeight());
 
-        // Draw hour lines and labels
+        // Draw horizontal hour lines
+        g.setColor(new Color(200, 200, 200));
         for (int i = 0; i <= 12; i++) {
             int y = i * HOUR_HEIGHT + HEADER_HEIGHT;
-            g.drawLine(0, y, getWidth(), y);
-            g.drawString((i + 8) + ":00", 5, y - 5);
+            g.drawLine(TIME_COLUMN_WIDTH, y, getWidth(), y);
         }
     }
 
-    private void drawEvents(Graphics g) {
+    private void drawTimeIndicators(Graphics2D g) {
+        g.setColor(Color.BLACK);
+        Font timeFont = new Font("Arial", Font.PLAIN, 10);
+        g.setFont(timeFont);
+        
+        for (int i = 0; i <= 12; i++) {
+            int hour = i + 8;  // Starting from 8 AM
+            int y = i * HOUR_HEIGHT + HEADER_HEIGHT;
+            
+            // Draw hour
+            g.drawString(String.format("%02d:00", hour), 5, y - 5);
+            
+            // Draw half-hour marker
+            g.setColor(new Color(200, 200, 200));
+            int halfHourY = y + (HOUR_HEIGHT / 2);
+            g.drawLine(TIME_COLUMN_WIDTH, halfHourY, getWidth(), halfHourY);
+            g.setColor(Color.BLACK);
+        }
+    }
+
+    private void drawEvents(Graphics2D g) {
         for (Event event : events) {
             LocalDateTime startTime = event.getStartTime();
             LocalDateTime endTime = event.getEndTime();
+            
+            // Skip if event is not in current week
+            if (!isEventInWeek(event)) continue;
             
             int day = startTime.getDayOfWeek().getValue() - 1;
             int startHour = startTime.getHour() - 8;
@@ -274,24 +348,80 @@ class WeekPanel extends JPanel {
             int startMinute = startTime.getMinute();
             int endMinute = endTime.getMinute();
             
-            int x = day * DAY_WIDTH + 5;
-            int y = startHour * HOUR_HEIGHT + (startMinute * HOUR_HEIGHT / 60) + HEADER_HEIGHT;
+            int x = TIME_COLUMN_WIDTH + (day * DAY_WIDTH) + 5;
+            int y = startHour * HOUR_HEIGHT + 
+                    (startMinute * HOUR_HEIGHT / 60) + 
+                    HEADER_HEIGHT;
             int height = (endHour - startHour) * HOUR_HEIGHT + 
                         ((endMinute - startMinute) * HOUR_HEIGHT / 60);
 
-            // Draw event rectangle
+            // Draw event background
             g.setColor(event.getColor());
-            g.fillRect(x, y, DAY_WIDTH - 10, height);
+            g.fillRoundRect(x, y, DAY_WIDTH - 10, height, 10, 10);
+            
+            // Draw event border
+            g.setColor(event.getColor().darker());
+            g.drawRoundRect(x, y, DAY_WIDTH - 10, height, 10, 10);
+
+            // Draw event details
             g.setColor(Color.BLACK);
-            g.drawRect(x, y, DAY_WIDTH - 10, height);
-            g.drawString(event.getName(), x + 5, y + 15);
+            Font eventFont = new Font("Arial", Font.BOLD, 11);
+            g.setFont(eventFont);
+            
+            // Draw event time
+            String timeStr = String.format("%02d:%02d-%02d:%02d", 
+                startTime.getHour(), startTime.getMinute(),
+                endTime.getHour(), endTime.getMinute());
+            g.drawString(timeStr, x + 5, y + 15);
+            
+            // Draw event name
+            g.drawString(event.getName(), x + 5, y + 30);
         }
     }
 
+    private void drawCurrentTimeLine(Graphics2D g) {
+        LocalDateTime now = LocalDateTime.now();
+        if (isTimeInWorkHours(now)) {
+            int day = now.getDayOfWeek().getValue() - 1;
+            int hour = now.getHour() - 8;
+            int minute = now.getMinute();
+            
+            int y = hour * HOUR_HEIGHT + 
+                    (minute * HOUR_HEIGHT / 60) + 
+                    HEADER_HEIGHT;
+
+            // Draw current time line
+            g.setColor(Color.RED);
+            Stroke oldStroke = g.getStroke();
+            g.setStroke(new BasicStroke(2, BasicStroke.CAP_BUTT, 
+                BasicStroke.JOIN_BEVEL, 0, new float[]{5}, 0));
+            g.drawLine(TIME_COLUMN_WIDTH, y, getWidth(), y);
+            g.setStroke(oldStroke);
+        }
+    }
+
+    private boolean isTimeInWorkHours(LocalDateTime time) {
+        int dayOfWeek = time.getDayOfWeek().getValue();
+        int hour = time.getHour();
+        
+        if (dayOfWeek <= 5) {  // Weekdays
+            return hour >= 8 && hour < 20;
+        } else if (dayOfWeek == 6) {  // Saturday
+            return hour >= 8 && hour < 15;
+        }
+        return false;  // Sunday
+    }
+
+    private boolean isEventInWeek(Event event) {
+        LocalDate eventDate = event.getStartTime().toLocalDate();
+        LocalDate weekEnd = monday.plusDays(6);
+        return !eventDate.isBefore(monday) && !eventDate.isAfter(weekEnd);
+    }
+
     private void handleClick(int x, int y) {
-        // Check if clicked on date header (for daily view)
-        if (y < HEADER_HEIGHT) {
-            int day = x / DAY_WIDTH;
+        // Check if clicked in header area (for daily view)
+        if (y < HEADER_HEIGHT && x > TIME_COLUMN_WIDTH) {
+            int day = (x - TIME_COLUMN_WIDTH) / DAY_WIDTH;
             if (day >= 0 && day < 7) {
                 showDailyView(monday.plusDays(day));
                 return;
@@ -301,19 +431,29 @@ class WeekPanel extends JPanel {
         // Check if clicked on an event
         Event clickedEvent = findEventAt(x, y);
         if (clickedEvent != null) {
-            EventDialog dialog = new EventDialog(mainFrame, clickedEvent);
-            dialog.setVisible(true);
+            showEventDialog(clickedEvent);
+        }
+    }
+
+    private void showEventDialog(Event event) {
+        EventDialog dialog = new EventDialog(mainFrame, event);
+        dialog.setVisible(true);
+        if (dialog.getEvent() != null) {
+            // If event was modified
+            events.remove(event);  // Remove old event
+            events.add(dialog.getEvent());  // Add modified event
             repaint();
         }
     }
 
     private Event findEventAt(int x, int y) {
-        int day = x / DAY_WIDTH;
-        int hour = (y - HEADER_HEIGHT) / HOUR_HEIGHT;
-        int minute = ((y - HEADER_HEIGHT) % HOUR_HEIGHT) * 60 / HOUR_HEIGHT;
+        if (x < TIME_COLUMN_WIDTH || y < HEADER_HEIGHT) return null;
+        
+        int day = (x - TIME_COLUMN_WIDTH) / DAY_WIDTH;
+        double hour = (double)(y - HEADER_HEIGHT) / HOUR_HEIGHT + 8;
         
         LocalDateTime clickTime = monday.plusDays(day)
-            .atTime(hour + 8, minute);
+            .atTime((int)hour, (int)((hour % 1) * 60));
 
         for (Event event : events) {
             if (isTimeInEvent(clickTime, event)) {
@@ -323,33 +463,85 @@ class WeekPanel extends JPanel {
         return null;
     }
 
+    private void showDailyView(LocalDate date) {
+        JDialog dailyView = new JDialog(mainFrame, 
+            "Daily Schedule - " + date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy")), 
+            true);
+        
+        JPanel contentPanel = new JPanel(new BorderLayout(10, 10));
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // Create event list with custom renderer
+        DefaultListModel<Event> model = new DefaultListModel<>();
+        for (Event event : events) {
+            if (event.getStartTime().toLocalDate().equals(date)) {
+                model.addElement(event);
+            }
+        }
+
+        JList<Event> eventList = new JList<>(model);
+        eventList.setCellRenderer(new EventListRenderer());
+        eventList.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    Event selected = eventList.getSelectedValue();
+                    if (selected != null) {
+                        dailyView.dispose();
+                        showEventDialog(selected);
+                    }
+                }
+            }
+        });
+
+        contentPanel.add(new JScrollPane(eventList), BorderLayout.CENTER);
+
+        // Add a label showing work hours
+        String workHours = date.getDayOfWeek() == DayOfWeek.SATURDAY ? 
+            "Work Hours: 8:00 AM - 3:00 PM" :
+            date.getDayOfWeek() == DayOfWeek.SUNDAY ?
+            "No Events Allowed" : "Work Hours: 8:00 AM - 8:00 PM";
+        
+        JLabel hoursLabel = new JLabel(workHours);
+        hoursLabel.setHorizontalAlignment(JLabel.CENTER);
+        contentPanel.add(hoursLabel, BorderLayout.NORTH);
+
+        dailyView.add(contentPanel);
+        dailyView.setSize(400, 500);
+        dailyView.setLocationRelativeTo(mainFrame);
+        dailyView.setVisible(true);
+    }
+
     private boolean isTimeInEvent(LocalDateTime time, Event event) {
         return !time.isBefore(event.getStartTime()) && 
                !time.isAfter(event.getEndTime());
     }
+}
 
-    private void showDailyView(LocalDate date) {
-        JDialog dailyView = new JDialog(mainFrame, 
-            "Daily Schedule - " + date.format(DateTimeFormatter.ISO_DATE), 
-            true);
-        dailyView.setLayout(new BorderLayout());
-
-        DefaultListModel<String> model = new DefaultListModel<>();
-        for (Event event : events) {
-            if (event.getStartTime().toLocalDate().equals(date)) {
-                String timeStr = event.getStartTime().format(
-                    DateTimeFormatter.ofPattern("HH:mm")) + 
-                    " - " + event.getName();
-                model.addElement(timeStr);
-            }
-        }
-
-        JList<String> eventList = new JList<>(model);
-        dailyView.add(new JScrollPane(eventList), BorderLayout.CENTER);
+class EventListRenderer extends DefaultListCellRenderer {
+    @Override
+    public Component getListCellRendererComponent(
+            JList<?> list, Object value, int index,
+            boolean isSelected, boolean cellHasFocus) {
         
-        dailyView.setSize(300, 400);
-        dailyView.setLocationRelativeTo(mainFrame);
-        dailyView.setVisible(true);
+        super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+        
+        if (value instanceof Event) {
+            Event event = (Event) value;
+            String timeStr = String.format("%02d:%02d-%02d:%02d", 
+                event.getStartTime().getHour(),
+                event.getStartTime().getMinute(),
+                event.getEndTime().getHour(),
+                event.getEndTime().getMinute());
+            
+            setText(String.format("%s: %s (%s)", 
+                timeStr, event.getName(), event.getLocation()));
+            
+            setBackground(isSelected ? list.getSelectionBackground() : event.getColor());
+            setForeground(isSelected ? list.getSelectionForeground() : Color.BLACK);
+        }
+        
+        return this;
     }
 }
 
