@@ -1,6 +1,7 @@
 import java.awt.*;
 import javax.swing.*;
 
+// Class for seting up the displaying events in a list
 class EventListDisplay extends DefaultListCellRenderer {
     @Override
     public Component getListCellRendererComponent(
@@ -9,8 +10,7 @@ class EventListDisplay extends DefaultListCellRenderer {
         
         super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
         
-        if (value instanceof ScheduleEvent) {
-            ScheduleEvent event = (ScheduleEvent) value;
+        if (value instanceof ScheduleEvent event) {
             String timeStr = String.format("%02d:%02d-%02d:%02d", 
                 event.getStartTime().getHour(),
                 event.getStartTime().getMinute(),
