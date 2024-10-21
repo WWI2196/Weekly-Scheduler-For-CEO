@@ -16,12 +16,12 @@ class EventDetailsForm extends JDialog {
         Color.RED, Color.GREEN, Color.YELLOW, 
         Color.BLUE, Color.ORANGE, Color.GRAY
     };
-    private ScheduleManager mainFrame;
+    private ScheduleManager scheduleManager;
     
     public EventDetailsForm(ScheduleManager owner, ScheduleEvent event) {
         super(owner, event == null ? "New Event" : "Edit Event", true);
         this.originalEvent = event;
-        this.mainFrame = owner;
+        this.scheduleManager = owner;
         setupUI();
         if (event != null) {
             populateFields(event);
@@ -40,6 +40,7 @@ class EventDetailsForm extends JDialog {
         
         String[] colorNames = {"Red", "Green", "Yellow", "Blue", "Orange", "Gray"};
         colorBox = new JComboBox<>(colorNames);
+        colorBox.addActionListener(e -> updateTitleBarColor());
 
         // Setup date spinner
         dateSpinner = new JSpinner(new SpinnerDateModel());
@@ -105,7 +106,7 @@ class EventDetailsForm extends JDialog {
 
         deleteButton.addActionListener(e -> {
             if (originalEvent != null) {
-                mainFrame.deleteEvent(originalEvent);
+                scheduleManager.deleteEvent(originalEvent);
                 dispose();
             }
         });
@@ -122,6 +123,13 @@ class EventDetailsForm extends JDialog {
 
         pack();
         setLocationRelativeTo(getOwner());
+        updateTitleBarColor();
+    }
+    
+    private void updateTitleBarColor() {
+        Color selectedColor = AVAILABLE_COLORS[colorBox.getSelectedIndex()];
+        this.getContentPane().setBackground(selectedColor);
+        this.repaint();
     }
 
     private void populateFields(ScheduleEvent event) {
