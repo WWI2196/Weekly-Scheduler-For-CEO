@@ -3,6 +3,7 @@ import java.time.*;
 import java.util.*;
 import javax.swing.*;
 
+//  Class to managing the scheduling tasks
 class ScheduleManager extends JFrame {
     private WeeklyCalendarView weekPanel;
     private ArrayList<ScheduleEvent> events;
@@ -12,6 +13,7 @@ class ScheduleManager extends JFrame {
     public ScheduleManager() {
         events = new ArrayList<>();
         
+        // Load existing schedule or ask for the initial date
         if (!loadSchedule()) {
             String input = JOptionPane.showInputDialog(this, 
                 "Enter Monday's date (YYYY-MM-DD):", 
@@ -34,14 +36,16 @@ class ScheduleManager extends JFrame {
         setUserInterface();
     }
 
+     // Set the main user interface
     private void setUserInterface() {
         setTitle("CEO Weekly Scheduler");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1200, 800);
 
+         // Create menu bar 
         menuBar = new JMenuBar();
-        JMenu fileMenu = new JMenu("File");
-        JMenuItem newEventItem = new JMenuItem("New Event");
+        JMenu fileMenu = new JMenu("Menu");
+        JMenuItem newEventItem = new JMenuItem("Add New Event");
         JMenuItem saveItem = new JMenuItem("Save Schedule");
 
         newEventItem.addActionListener(e -> showNewEventDialog());
@@ -52,10 +56,12 @@ class ScheduleManager extends JFrame {
         menuBar.add(fileMenu);
         setJMenuBar(menuBar);
 
+         // Create and add the calendar view
         weekPanel = new WeeklyCalendarView(currentMonday, events, this);
         add(weekPanel);
     }
 
+    // Display form to create a new event
     void showNewEventDialog() {
         EventDetailsForm dialog = new EventDetailsForm(this, null);
         dialog.setVisible(true);
@@ -67,8 +73,10 @@ class ScheduleManager extends JFrame {
         }
     }
 
+    // Validate the event
     private boolean isValidEvent(ScheduleEvent newEvent) {
-        // Duration check (30 minutes to 3 hours)
+        
+        // Duration check 
         long durationMinutes = Duration.between(
             newEvent.getStartTime(), newEvent.getEndTime()).toMinutes();
         if (durationMinutes < 30 || durationMinutes > 180) {
@@ -77,16 +85,14 @@ class ScheduleManager extends JFrame {
             return false;
         }
 
-        // Business hours check
+        // Check if event is within allowed times
         int dayOfWeek = newEvent.getStartTime().getDayOfWeek().getValue();
         switch (dayOfWeek) {
             case 7 -> {
-                // Sunday
                 JOptionPane.showMessageDialog(this, "No events allowed on Sunday");
                 return false;
             }
             case 6 -> {
-                // Saturday
                 if (newEvent.getStartTime().getHour() < 8 ||
                         newEvent.getEndTime().getHour() > 15) {
                     JOptionPane.showMessageDialog(this,
@@ -95,7 +101,6 @@ class ScheduleManager extends JFrame {
                 }
             }
             default -> {
-                // Weekdays
                 if (newEvent.getStartTime().getHour() < 8 ||
                         newEvent.getEndTime().getHour() > 20) {
                     JOptionPane.showMessageDialog(this,
@@ -105,7 +110,7 @@ class ScheduleManager extends JFrame {
             }
         }
 
-        // Overlap check (30 minutes maximum)
+        // Event Overlaping check 
         for (ScheduleEvent existing : events) {
             if (existing != newEvent && eventsOverlap(existing, newEvent)) {
                 long overlapMinutes = calculateOverlap(existing, newEvent);
@@ -120,6 +125,7 @@ class ScheduleManager extends JFrame {
         return true;
     }
 
+     // Save the current schedule to a file
     public boolean saveSchedule() {
         try (ObjectOutputStream oos = new ObjectOutputStream(
                 new FileOutputStream("src/scheduleData/schedule.dat"))) {
@@ -134,6 +140,7 @@ class ScheduleManager extends JFrame {
         }
     }
 
+     // Load the current schedule from the file
     private boolean loadSchedule() {
         try (ObjectInputStream ois = new ObjectInputStream(
                 new FileInputStream("src/scheduleData/schedule.dat"))) {
@@ -146,6 +153,7 @@ class ScheduleManager extends JFrame {
         }
     }
     
+    // Update an exsisting event
     public void updateEvent(ScheduleEvent updatedEvent) {
         for (int i = 0; i < events.size(); i++) {
             if (events.get(i).equals(updatedEvent)) {
@@ -157,6 +165,7 @@ class ScheduleManager extends JFrame {
         saveSchedule();
     }
     
+    // Add a new event
     public void addNewEvent(ScheduleEvent newEvent) {
         if (isValidEvent(newEvent)) {
             events.add(newEvent);
@@ -165,6 +174,7 @@ class ScheduleManager extends JFrame {
         }
     }
 
+    // Delete an exsisting event
     void deleteEvent(ScheduleEvent event) {
         int confirm = JOptionPane.showConfirmDialog(this,
             "Do you want to delete this event?",
@@ -178,11 +188,13 @@ class ScheduleManager extends JFrame {
         }
     }
 
+    // To check if events overlap
     private boolean eventsOverlap(ScheduleEvent e1, ScheduleEvent e2) {
         return !e1.getEndTime().isBefore(e2.getStartTime()) && 
                !e2.getEndTime().isBefore(e1.getStartTime());
     }
 
+    // To calculate the overlaping time it events overlaps
     private long calculateOverlap(ScheduleEvent e1, ScheduleEvent e2) {
         LocalDateTime overlapStart = e1.getStartTime().isBefore(e2.getStartTime()) ? 
             e2.getStartTime() : e1.getStartTime();
