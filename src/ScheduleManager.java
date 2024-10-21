@@ -79,22 +79,29 @@ class ScheduleManager extends JFrame {
 
         // Business hours check
         int dayOfWeek = newEvent.getStartTime().getDayOfWeek().getValue();
-        if (dayOfWeek == 7) { // Sunday
-            JOptionPane.showMessageDialog(this, "No events allowed on Sunday");
-            return false;
-        } else if (dayOfWeek == 6) { // Saturday
-            if (newEvent.getStartTime().getHour() < 8 || 
-                newEvent.getEndTime().getHour() > 15) {
-                JOptionPane.showMessageDialog(this, 
-                    "Saturday events must be between 8 AM and 3 PM");
+        switch (dayOfWeek) {
+            case 7 -> {
+                // Sunday
+                JOptionPane.showMessageDialog(this, "No events allowed on Sunday");
                 return false;
             }
-        } else { // Weekdays
-            if (newEvent.getStartTime().getHour() < 8 || 
-                newEvent.getEndTime().getHour() > 20) {
-                JOptionPane.showMessageDialog(this, 
-                    "Weekday events must be between 8 AM and 8 PM");
-                return false;
+            case 6 -> {
+                // Saturday
+                if (newEvent.getStartTime().getHour() < 8 ||
+                        newEvent.getEndTime().getHour() > 15) {
+                    JOptionPane.showMessageDialog(this,
+                            "Saturday events must be between 8 AM and 3 PM");
+                    return false;
+                }
+            }
+            default -> {
+                // Weekdays
+                if (newEvent.getStartTime().getHour() < 8 ||
+                        newEvent.getEndTime().getHour() > 20) {
+                    JOptionPane.showMessageDialog(this,
+                            "Weekday events must be between 8 AM and 8 PM");
+                    return false;
+                }
             }
         }
 
@@ -115,7 +122,7 @@ class ScheduleManager extends JFrame {
 
     private boolean saveSchedule() {
         try (ObjectOutputStream oos = new ObjectOutputStream(
-                new FileOutputStream("schedule.dat"))) {
+                new FileOutputStream("src/scheduleData/schedule.dat"))) {
             oos.writeObject(events);
             oos.writeObject(currentMonday);
             JOptionPane.showMessageDialog(this, "Events Updated Sucessfully.");
@@ -128,7 +135,7 @@ class ScheduleManager extends JFrame {
 
     private boolean loadSchedule() {
         try (ObjectInputStream ois = new ObjectInputStream(
-                new FileInputStream("schedule.dat"))) {
+                new FileInputStream("src/scheduleData/schedule.dat"))) {
             events = (ArrayList<ScheduleEvent>) ois.readObject();
             currentMonday = (LocalDate) ois.readObject();
             return true;
