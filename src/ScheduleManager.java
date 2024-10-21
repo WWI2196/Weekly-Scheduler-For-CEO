@@ -120,15 +120,16 @@ class ScheduleManager extends JFrame {
         return true;
     }
 
-    private boolean saveSchedule() {
+    public boolean saveSchedule() {
         try (ObjectOutputStream oos = new ObjectOutputStream(
                 new FileOutputStream("src/scheduleData/schedule.dat"))) {
             oos.writeObject(events);
             oos.writeObject(currentMonday);
-            JOptionPane.showMessageDialog(this, "Events Updated Sucessfully.");
+            JOptionPane.showMessageDialog(this, "Schedule saved successfully.");
             return true;
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "Error");
+            JOptionPane.showMessageDialog(this, "Error saving schedule: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }
@@ -140,7 +141,27 @@ class ScheduleManager extends JFrame {
             currentMonday = (LocalDate) ois.readObject();
             return true;
         } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
             return false;
+        }
+    }
+    
+    public void updateEvent(ScheduleEvent updatedEvent) {
+        for (int i = 0; i < events.size(); i++) {
+            if (events.get(i).equals(updatedEvent)) {
+                events.set(i, updatedEvent);
+                break;
+            }
+        }
+        weekPanel.repaint();
+        saveSchedule();
+    }
+    
+    public void addNewEvent(ScheduleEvent newEvent) {
+        if (isValidEvent(newEvent)) {
+            events.add(newEvent);
+            weekPanel.repaint();
+            saveSchedule();
         }
     }
 
