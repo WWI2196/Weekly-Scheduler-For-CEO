@@ -32,17 +32,17 @@ class EventDetailsForm extends JDialog {
         super(owner, event == null ? "New Event" : "Edit Event", true);
         this.originalEvent = event;
         this.scheduleManager = owner;
-        setupUI();
+        setUserInterface();
         if (event != null) {
             populateFields(event);
         }
     }
 
-    private void setupUI() {
+    private void setUserInterface() {
         setLayout(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        GridBagConstraints gbc_ = new GridBagConstraints();
+        gbc_.insets = new Insets(5, 5, 5, 5);
+        gbc_.fill = GridBagConstraints.HORIZONTAL;
 
         // Create components
         nameField = new JTextField(32);
@@ -64,41 +64,41 @@ class EventDetailsForm extends JDialog {
         endTimeSpinner.setEditor(new JSpinner.DateEditor(endTimeSpinner, "HH:mm"));
 
         // Add components to dialog
-        gbc.gridx = 0; gbc.gridy = 0;
-        add(new JLabel("Event Name:"), gbc);
+        gbc_.gridx = 0; gbc_.gridy = 0;
+        add(new JLabel("Event Name:"), gbc_);
         
-        gbc.gridx = 1;
-        add(nameField, gbc);
+        gbc_.gridx = 1;
+        add(nameField, gbc_);
 
-        gbc.gridx = 0; gbc.gridy = 1;
-        add(new JLabel("Location:"), gbc);
+        gbc_.gridx = 0; gbc_.gridy = 1;
+        add(new JLabel("Location:"), gbc_);
         
-        gbc.gridx = 1;
-        add(locationField, gbc);
+        gbc_.gridx = 1;
+        add(locationField, gbc_);
 
-        gbc.gridx = 0; gbc.gridy = 2;
-        add(new JLabel("Date:"), gbc);
+        gbc_.gridx = 0; gbc_.gridy = 2;
+        add(new JLabel("Date:"), gbc_);
         
-        gbc.gridx = 1;
-        add(dateSpinner, gbc);
+        gbc_.gridx = 1;
+        add(dateSpinner, gbc_);
 
-        gbc.gridx = 0; gbc.gridy = 3;
-        add(new JLabel("Start Time:"), gbc);
+        gbc_.gridx = 0; gbc_.gridy = 3;
+        add(new JLabel("Start Time:"), gbc_);
         
-        gbc.gridx = 1;
-        add(startTimeSpinner, gbc);
+        gbc_.gridx = 1;
+        add(startTimeSpinner, gbc_);
 
-        gbc.gridx = 0; gbc.gridy = 4;
-        add(new JLabel("End Time:"), gbc);
+        gbc_.gridx = 0; gbc_.gridy = 4;
+        add(new JLabel("End Time:"), gbc_);
         
-        gbc.gridx = 1;
-        add(endTimeSpinner, gbc);
+        gbc_.gridx = 1;
+        add(endTimeSpinner, gbc_);
 
-        gbc.gridx = 0; gbc.gridy = 5;
-        add(new JLabel("Color:"), gbc);
+        gbc_.gridx = 0; gbc_.gridy = 5;
+        add(new JLabel("Color:"), gbc_);
         
-        gbc.gridx = 1;
-        add(colorBox, gbc);
+        gbc_.gridx = 1;
+        add(colorBox, gbc_);
 
         // Add buttons
         JPanel buttonPanel = new JPanel();
@@ -127,9 +127,9 @@ class EventDetailsForm extends JDialog {
             buttonPanel.add(deleteButton);
         }
 
-        gbc.gridx = 0; gbc.gridy = 6;
-        gbc.gridwidth = 2;
-        add(buttonPanel, gbc);
+        gbc_.gridx = 0; gbc_.gridy = 6;
+        gbc_.gridwidth = 2;
+        add(buttonPanel, gbc_);
 
         pack();
         setLocationRelativeTo(getOwner());
@@ -182,20 +182,14 @@ class EventDetailsForm extends JDialog {
 
             // Get date from date spinner
             Date dateValue = (Date) dateSpinner.getValue();
-            LocalDate date = dateValue.toInstant()
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate();
+            LocalDate date = dateValue.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 
             // Get times from time spinners
             Date startValue = (Date) startTimeSpinner.getValue();
             Date endValue = (Date) endTimeSpinner.getValue();
             
-            LocalTime startTime = startValue.toInstant()
-                .atZone(ZoneId.systemDefault())
-                .toLocalTime();
-            LocalTime endTime = endValue.toInstant()
-                .atZone(ZoneId.systemDefault())
-                .toLocalTime();
+            LocalTime startTime = startValue.toInstant().atZone(ZoneId.systemDefault()).toLocalTime();
+            LocalTime endTime = endValue.toInstant().atZone(ZoneId.systemDefault()).toLocalTime();
 
             // Create LocalDateTime objects
             LocalDateTime startDateTime = LocalDateTime.of(date, startTime);
@@ -205,10 +199,22 @@ class EventDetailsForm extends JDialog {
             Color color = EVENT_COLORS[colorBox.getSelectedIndex()];
 
             // Create new event
-            result = new ScheduleEvent(name, location, startDateTime, endDateTime, color);
-
+            if (originalEvent != null) {
+                originalEvent.setName(name);
+                originalEvent.setLocation(location);
+                originalEvent.setStartTime(startDateTime);
+                originalEvent.setEndTime(endDateTime);
+                originalEvent.setColor(color);
+                result = originalEvent;
+                scheduleManager.updateEvent(result);
+            } else {
+                result = new ScheduleEvent(name, location, startDateTime, endDateTime, color);
+                scheduleManager.addNewEvent(result);
+            }
+            
             return true;
-        } catch (Exception e) {
+            
+        } catch (HeadlessException e) {
             JOptionPane.showMessageDialog(this, 
                 "Invalid input: " + e.getMessage());
             return false;
@@ -219,3 +225,4 @@ class EventDetailsForm extends JDialog {
         return result;
     }
 }
+
