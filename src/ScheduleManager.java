@@ -31,10 +31,10 @@ class ScheduleManager extends JFrame {
             }
         }
 
-        setupUI();
+        setUserInterface();
     }
 
-    private void setupUI() {
+    private void setUserInterface() {
         setTitle("CEO Weekly Scheduler");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1200, 800);
