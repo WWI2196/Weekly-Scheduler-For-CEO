@@ -436,12 +436,15 @@ class WeekPanel extends JPanel {
     }
 
     private void showEventDialog(Event event) {
-        EventDialog dialog = new EventDialog(mainFrame, event);
+        EventDialog dialog = new EventDialog((MainFrame) SwingUtilities.getWindowAncestor(this), event);
         dialog.setVisible(true);
         if (dialog.getEvent() != null) {
             // If event was modified
             events.remove(event);  // Remove old event
             events.add(dialog.getEvent());  // Add modified event
+            repaint();
+        } else if (!events.contains(event)) {
+            // If event was deleted
             repaint();
         }
     }
@@ -558,10 +561,12 @@ class EventDialog extends JDialog {
         Color.RED, Color.GREEN, Color.YELLOW, 
         Color.BLUE, Color.ORANGE, Color.GRAY
     };
-
-    public EventDialog(Frame owner, Event event) {
+    private MainFrame mainFrame;
+    
+    public EventDialog(MainFrame owner, Event event) {
         super(owner, event == null ? "New Event" : "Edit Event", true);
         this.originalEvent = event;
+        this.mainFrame = owner;
         setupUI();
         if (event != null) {
             populateFields(event);
@@ -633,6 +638,7 @@ class EventDialog extends JDialog {
         JPanel buttonPanel = new JPanel();
         JButton okButton = new JButton("OK");
         JButton cancelButton = new JButton("Cancel");
+        JButton deleteButton = new JButton("Delete");
 
         okButton.addActionListener(e -> {
             if (createEvent()) {
@@ -642,8 +648,18 @@ class EventDialog extends JDialog {
 
         cancelButton.addActionListener(e -> dispose());
 
+        deleteButton.addActionListener(e -> {
+            if (originalEvent != null) {
+                mainFrame.deleteEvent(originalEvent);
+                dispose();
+            }
+        });
+
         buttonPanel.add(okButton);
         buttonPanel.add(cancelButton);
+        if (originalEvent != null) {
+            buttonPanel.add(deleteButton);
+        }
 
         gbc.gridx = 0; gbc.gridy = 6;
         gbc.gridwidth = 2;
